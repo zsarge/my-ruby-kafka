@@ -80,6 +80,8 @@ task :complete, [:slug] do |_, args|
 
   Rake::Task[:test].invoke(args[:slug])
 
+  puts "Committing..."
+
   `cd #{File.dirname File.expand_path(__FILE__)}`
   `git add -A`
   `git commit -S -m "[rake] update stage #{args[:slug]}"`
