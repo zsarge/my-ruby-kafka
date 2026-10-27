@@ -1,4 +1,5 @@
 require "socket"
+require_relative 'wire'
 
 module Zafka
   class Server
@@ -7,7 +8,7 @@ module Zafka
 
       loop do
         Thread.start(server.accept) do |client|
-          client.puts "one day, this will be kafka..."
+          Wire.write_response(client)
           client.close
         end
       end
