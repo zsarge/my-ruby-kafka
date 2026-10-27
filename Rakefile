@@ -75,4 +75,15 @@ task :stage, [:slug] do |_, args|
   Rake::Task[:test].invoke(args[:slug])
 end
 
+task :complete, [:slug] do |_, args|
+  abort "use `rake complete[slug]`; use `rake stages` to list slugs" unless args[:slug]
+
+  Rake::Task[:test].invoke(args[:slug])
+  Rake::Task[:test].invoke(args[:slug])
+
+  `cd #{File.expand_path(__FILE__)}`
+  `git add -A`
+  `git commit -S -m "update stage #{args[:slug]}"`
+end
+
 task default: :test
