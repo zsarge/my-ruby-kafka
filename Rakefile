@@ -1,4 +1,3 @@
-require "rake/testtask"
 require "json"
 
 STAGES = [
@@ -29,8 +28,7 @@ STAGES = [
   ["ov0", "Produce to multiple topics"]
 ].freeze
 
-TESTER_DIR = File.expand_path("../their-kafka/codecrafters-tester", __dir__)
-TESTER = File.join(TESTER_DIR, "dist/main.out")
+TEST_IMAGE = "my-ruby-kafka-tester:local"
 
 def test_cases_through(stage_slug)
   index = STAGES.index { |slug, _| slug == stage_slug }
@@ -47,29 +45,34 @@ task :stages do
   end
 end
 
-task :build_official_tester do
-  sh "go", "build", "-o", TESTER, "./cmd/tester", chdir: TESTER_DIR
+namespace :docker do
+  task :build do
+    sh "docker", "build", "--tag", TEST_IMAGE, __dir__
+  end
 end
 
-task :test, [:stage] => :build_official_tester do |_, args|
-  selected_stage = args[:stage] || STAGES.last.first
-  env = {
-    "CODECRAFTERS_REPOSITORY_DIR" => __dir__,
-    "CODECRAFTERS_TEST_CASES_JSON" => JSON.generate(test_cases_through(selected_stage))
-  }
+task :ensure_test_image do
+  next if system("docker", "image", "inspect", TEST_IMAGE, out: File::NULL, err: File::NULL)
 
-  sh env, TESTER
+  Rake::Task["docker:build"].invoke
+end
+
+task :test, [:stage] => :ensure_test_image do |_, args|
+  selected_stage = args[:stage] || STAGES.last.first
+  test_cases = JSON.generate(test_cases_through(selected_stage))
+
+  sh "docker", "run", "--rm",
+     "--env", "CODECRAFTERS_REPOSITORY_DIR=/workspace",
+     "--env", "CODECRAFTERS_TEST_CASES_JSON=#{test_cases}",
+     "--mount", "type=bind,src=#{__dir__},dst=/workspace",
+     "--workdir", "/workspace",
+     TEST_IMAGE
 end
 
 task :stage, [:slug] do |_, args|
   abort "use `rake stage[slug]`; use `rake stages` to list slugs" unless args[:slug]
 
   Rake::Task[:test].invoke(args[:slug])
-end
-
-Rake::TestTask.new(:smoke) do |task|
-  task.libs << "lib" << "test"
-  task.pattern = "test/stages/01_*_test.rb"
 end
 
 task default: :test

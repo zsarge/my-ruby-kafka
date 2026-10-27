@@ -5,27 +5,14 @@ time. The complete 25-stage test suite is available now, but each command runs
 only the prefix you select. Start red, write the smallest implementation that
 passes, commit it, then choose the next stage.
 
-This is an original Ruby test suite based on the public Kafka wire protocol and
-the public [CodeCrafters Kafka challenge][codecrafters]. Ruby is not an
-officially supported CodeCrafters language, so this is not an official test
-suite or a compatibility guarantee.
+The test runner is a Docker image built from the public,
+MIT-licensed [CodeCrafters Kafka tester][tester] at a pinned commit. It runs
+locally: no account, subscription, submission, or hosted service is involved.
+Ruby is not an officially supported CodeCrafters language, but the tester only
+requires an executable named `your_program.sh`, so it works with this project.
 
 [codecrafters]: https://github.com/codecrafters-io/build-your-own-kafka
-
-The small Ruby smoke test contract is also checked with
-`test/fixtures/stage_01_passing_server.rb`, a deliberately tiny reference
-fixture written for this project. It is not copied from CodeCrafters or the
-Java tutorial:
-
-```sh
-BROKER_ENTRYPOINT=test/fixtures/stage_01_passing_server.rb rake smoke
-```
-
-The same fixture can prove the official Stage 1 check:
-
-```sh
-BROKER_ENTRYPOINT=test/fixtures/stage_01_passing_server.rb rake stage[vi6]
-```
+[tester]: https://github.com/codecrafters-io/kafka-tester
 
 ## Run the official tests
 
@@ -36,10 +23,15 @@ rake stage[pv1]   # Run Stages 1 through 5.
 rake test         # Run all 25 stages.
 ```
 
-`rake` runs the public
-[`codecrafters-io/kafka-tester`](../their-kafka/codecrafters-tester/) directly,
-using the same 25 stage slugs and checks as its challenge. The test runner
-expects `your_program.sh`, which starts `bin/server` for your Ruby broker.
+The first test command builds `my-ruby-kafka-tester:local`; later commands reuse
+that image. It runs the public tester's 25 stage checks against
+`your_program.sh`, which starts `bin/server` for your Ruby broker.
+
+To build the baseline explicitly:
+
+```sh
+rake docker:build
+```
 
 ## Start: Stage 1 — Bind to a port
 
@@ -94,7 +86,7 @@ sed -n '1,220p' ../their-kafka/codecrafters-definition/stage_descriptions/base-0
 
 ## Test layout
 
-The official suite lives in `../their-kafka/codecrafters-tester/`; it is the
-canonical implementation of the stage checks. `Rakefile` supplies the
-selection and Ruby executable contract. The local `test/stages/` Minitest
-tests are small Ruby smoke tests; they are supplementary rather than canonical.
+`Dockerfile` compiles the pinned open-source tester and packages it with Ruby.
+`Rakefile` selects a prefix of the 25 canonical stage checks and mounts this
+repository into the image. No sibling checkout or local Go installation is
+required to run tests.
