@@ -23,8 +23,6 @@ module Zafka
 
     private
 
-    INT_32_BE = "l>"
-
     def self.read_full_message(client)
       size = client.read(4).unpack1("N")
       client.read(size)
@@ -37,7 +35,7 @@ module Zafka
       # correlation_id = 0x00_00_00_07 # hardcoded
       correlation_id = header.correlation_id
 
-      header = [message_size, correlation_id].pack(INT_32_BE + "2")
+      header = [message_size, correlation_id].pack("l>2")
 
       client.write(header)
     end
